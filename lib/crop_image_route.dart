@@ -8,15 +8,24 @@ import 'package:image_crop/image_crop.dart';
 import 'package:image/image.dart' as ty;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:convert';
+import 'package:sensors/sensors.dart';
+import 'dart:math';
 
 class CropImageRoute extends StatefulWidget {
-  CropImageRoute(this.image);
+  CropImageRoute(this.image,this.url);
 
+  String url;
   File image; //原始图片路径
 
   @override
   _CropImageRouteState createState() => new _CropImageRouteState();
+}
+
+enum RectEditMode {
+  //矩形选框编辑方式
+  reDraw, // 重绘
+  move, // 移动
+  scale, // 缩放
 }
 
 class _CropImageRouteState extends State<CropImageRoute> {
@@ -30,6 +39,26 @@ class _CropImageRouteState extends State<CropImageRoute> {
   File selectImage;
   ty.Image newSizeImage;
   List totalDataList;
+  Rect selectRect = Rect.fromLTWH(0, 0, 0, 0);
+  List elementList = []; // 框内 元素数组，name ： 出现次数
+  double radian; // 当前角度
+  Map timeRadianMap = Map(); // 某时刻手机对应的角度
+  bool isChangeRect = false; // 是否修改选框，false修改，true重绘
+  RectEditMode editMode;
+
+  @override
+  void initState() {
+    accelerometerEvents.listen((AccelerometerEvent event) {
+      radian = atan(event.x / event.y);
+      /* 记录手机的方向角度
+      DateTime date = DateTime.now();
+      String timestamp = "${date.year.toString()}:${date.month.toString().padLeft(2,'0')}:${date.day.toString().padLeft(2,'0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}";
+      timeRadianMap[timestamp] = radian;
+      */
+//      print(radian);
+    });
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,11 +66,9 @@ class _CropImageRouteState extends State<CropImageRoute> {
         body: Container(
       height: MediaQuery.of(context).size.height,
       width: MediaQuery.of(context).size.width,
-      color: Colors.blue,
+      color: Colors.white,
       child: selectDone
-          ? CustomPaint(
-              painter: TYPainter(context, imageView,totalDataList),
-            )
+          ? resultView(context)
           : Column(
               children: <Widget>[
                 Container(
@@ -49,8 +76,8 @@ class _CropImageRouteState extends State<CropImageRoute> {
                   child: Crop.file(
                     widget.image,
                     key: cropKey,
-                    aspectRatio: 1.0,
                     alwaysShowGrid: true,
+                    aspectRatio: 1.0,
                   ),
                 ),
                 RaisedButton(
@@ -62,6 +89,108 @@ class _CropImageRouteState extends State<CropImageRoute> {
               ],
             ),
     ));
+  }
+
+  Widget resultView(BuildContext context) {
+    Map elemntMap = handleElementsData(elementList);
+
+    return Column(
+      children: [
+        Container(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.width,
+          child: GestureDetector(
+            /// 滑动手指
+            onPanUpdate: (DragUpdateDetails details) {
+              print(details);
+              print(details.delta);
+              if (editMode == RectEditMode.reDraw) {
+                selectRect = Rect.fromLTWH(
+                    selectRect.left,
+                    selectRect.top,
+                    selectRect.width + details.delta.dx,
+                    selectRect.height + details.delta.dy);
+              } else if (editMode == RectEditMode.scale) {
+                selectRect = Rect.fromLTWH(
+                    selectRect.left,
+                    selectRect.top,
+                    selectRect.width + details.delta.dx,
+                    selectRect.height + details.delta.dy);
+              } else if (editMode == RectEditMode.move) {
+                selectRect = Rect.fromLTWH(
+                    selectRect.left + details.delta.dx,
+                    selectRect.top + details.delta.dy,
+                    selectRect.width,
+                    selectRect.height);
+              }
+
+              setState(() {});
+            },
+
+            /// 开始画
+            onPanStart: (DragStartDetails details) {
+              /// 通过点击位置判断编辑方式 如果起点在矩形右下角，编辑方式即为缩放
+              /// 如果点在选框内，则为移动
+              if (hitPoint(
+                  details.globalPosition,
+                  Offset(selectRect.left + selectRect.width,
+                      selectRect.top + selectRect.height))) {
+                editMode = RectEditMode.scale;
+              } else if (pointInRect(details.globalPosition, selectRect)) {
+                editMode = RectEditMode.move;
+              } else {
+                editMode = RectEditMode.reDraw;
+                selectRect = Rect.fromLTWH(
+                    details.globalPosition.dx, details.globalPosition.dy, 0, 0);
+              }
+
+              print(details);
+            },
+            child: CustomPaint(
+              painter: TYPainter(
+                  context, imageView, totalDataList, selectRect, elementList),
+            ),
+          ),
+        ),
+        Container(
+          padding: EdgeInsets.fromLTRB(10, 5, 10, 0),
+          height: MediaQuery.of(context).size.height -
+              MediaQuery.of(context).size.width,
+          child: elemntMap.keys.length > 0
+              ? ListView.builder(
+                  itemBuilder: (context, index) {
+                    String key = elemntMap.keys.toList()[index];
+                    int value = elemntMap[key];
+                    return Container(
+                      height: 45,
+                      child: Row(
+                        children: [
+                          Icon(Icons.clear),
+                          Text(key),
+                          Expanded(child: Container()),
+                          Text("$value 个"),
+                        ],
+                      ),
+                    );
+                  },
+                  itemCount: elemntMap.keys.length,
+                )
+              : Text('所选择区域无检测数据，请框选检测区域'),
+        ),
+      ],
+    );
+  }
+
+  Map handleElementsData(List data) {
+    Map itemsMap = Map();
+    data.forEach((element) {
+      if (itemsMap.containsKey(element[0])) {
+        itemsMap[element[0]] = itemsMap[element[0]] + 1;
+      } else {
+        itemsMap[element[0]] = 1;
+      }
+    });
+    return itemsMap;
   }
 
   Future<void> _crop(File originalFile) async {
@@ -79,7 +208,7 @@ class _CropImageRouteState extends State<CropImageRoute> {
         ).then((value) {
           changeImageSizeToBase64String(value);
           print('裁剪成功');
-        }).catchError(() {
+        }).catchError((error) {
           print('裁剪不成功');
         });
       } else {}
@@ -97,15 +226,12 @@ class _CropImageRouteState extends State<CropImageRoute> {
     /// 转化为base64格式
     String imgString = base64Encode(ty.encodeJpg(newImage));
 
-
-
     imageView = await loadImageByUint8List(ty.encodeJpg(newImage));
 
     File newFile = File(await _findFileDownloadLocalPath('dingjian.jpg'));
     newFile.writeAsBytesSync(ty.encodeJpg(newImage));
 
     upload(newFile);
-
 
     return imgString;
   }
@@ -121,7 +247,7 @@ class _CropImageRouteState extends State<CropImageRoute> {
   void upload(File file) {
     Dio dio = Dio();
     dio
-        .post("http://192.168.0.230:8080",
+        .post(widget.url,
             data: FormData.fromMap(
                 {'file': MultipartFile.fromFileSync(file.path)}))
         .then((response) {
@@ -140,12 +266,11 @@ class _CropImageRouteState extends State<CropImageRoute> {
       print(tempArr);
 
       totalDataList = tempArr;
+
       /// 完成后更新UI
       selectDone = true;
       selectImage = file;
-      setState(() {
-      });
-
+      setState(() {});
     });
   }
 
@@ -201,6 +326,9 @@ class _CropImageRouteState extends State<CropImageRoute> {
 }
 
 class TYPainter extends CustomPainter {
+  Rect selectRect = Rect.fromLTWH(0, 0, 0, 0);
+  List elementList;
+
   ui.Image image;
   List dataList = [];
 
@@ -208,7 +336,8 @@ class TYPainter extends CustomPainter {
   final BuildContext context;
   Color color = Colors.red;
 
-  TYPainter(this.context, this.image, this.dataList) {
+  TYPainter(this.context, this.image, this.dataList, this.selectRect,
+      this.elementList) {
     this.tyPaint = Paint();
   }
 
@@ -221,6 +350,23 @@ class TYPainter extends CustomPainter {
         Rect.fromLTWH(0, 0, scale * image.width, scale * image.height),
         tyPaint);
 
+    /// 画 选框
+    canvas.drawRect(
+        selectRect,
+        tyPaint
+          ..color = Colors.orange
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2);
+    elementList.clear();
+
+    /// 画右下角 编辑点
+    canvas.drawCircle(
+        Offset(selectRect.right, selectRect.bottom),
+        4,
+        tyPaint
+          ..style = PaintingStyle.fill
+          ..color = Colors.green);
+
     /// 根据返回检测点 进行绘制
     for (List item in dataList) {
       String title = item[0];
@@ -229,8 +375,18 @@ class TYPainter extends CustomPainter {
       double w = item[4];
       double h = item[5];
 
+      /// 如果中心点在框选的范围内，则展示出来
+      if (!pointInRect(Offset(x * scale, y * scale), selectRect)) {
+        continue;
+      }
+
+      elementList.add(item);
+
       canvas.drawRect(
-        Rect.fromCenter(center: Offset(x * scale, y * scale),width: w * scale,height: h * scale),
+          Rect.fromCenter(
+              center: Offset(x * scale, y * scale),
+              width: w * scale,
+              height: h * scale),
           tyPaint
             ..style = PaintingStyle.stroke
             ..color = Colors.red
@@ -254,4 +410,25 @@ class TYPainter extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) {
     return true;
   }
+}
+
+/// 点是否在给定矩形范围内部
+bool pointInRect(Offset point, Rect rect) {
+  if (point.dx > rect.left &&
+      rect.right > point.dx &&
+      point.dy > rect.top &&
+      point.dy < rect.bottom) {
+    return true;
+  }
+  return false;
+}
+
+/// 两个点是否近
+bool hitPoint(Offset point, Offset hit) {
+  print(point);
+  print(hit);
+  if ((point.dx - hit.dx).abs() < 10 && (point.dy - hit.dy).abs() < 10) {
+    return true;
+  }
+  return false;
 }

@@ -30,6 +30,8 @@ dependencies:
   path_provider: ^1.1.0
   #提供了一个跨平台（iOS，Android）API来请求和检查权限
   permission_handler: ^3.1.0
+  sensors: ^0.4.2+2
+  flutter_compass: ^0.4.2+1
 
 
 
