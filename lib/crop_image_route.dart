@@ -11,6 +11,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:sensors/sensors.dart';
 import 'dart:math';
 
+import 'common/widgets/ty_painter.dart';
+
 class CropImageRoute extends StatefulWidget {
   CropImageRoute(this.image,this.url);
 
@@ -236,7 +238,7 @@ class _CropImageRouteState extends State<CropImageRoute> {
     return imgString;
   }
 
-  /// 通過[Uint8List]獲取圖片
+  /// 通过[Uint8List]获取图片
   Future<ui.Image> loadImageByUint8List(Uint8List list) async {
     ui.Codec codec = await ui.instantiateImageCodec(list);
     ui.FrameInfo frame = await codec.getNextFrame();
@@ -246,32 +248,32 @@ class _CropImageRouteState extends State<CropImageRoute> {
   ///上传
   void upload(File file) {
     Dio dio = Dio();
-    dio
-        .post(widget.url,
-            data: FormData.fromMap(
-                {'file': MultipartFile.fromFileSync(file.path)}))
-        .then((response) {
-      if (!mounted) {
-        return;
-      }
-      //处理上传结果
-      print('上传结果 ${response.data}');
-      String resposeStr = response.data;
-
-      var tempMap = jsonDecode(resposeStr);
-      String listStr = tempMap['res'];
-      String newStr = listStr.replaceAll("'", '\"');
-      List tempArr = json.decode(newStr);
-
-      print(tempArr);
-
-      totalDataList = tempArr;
+//    dio
+//        .post(widget.url,
+//            data: FormData.fromMap(
+//                {'file': MultipartFile.fromFileSync(file.path)}))
+//        .then((response) {
+//      if (!mounted) {
+//        return;
+//      }
+//      //处理上传结果
+//      print('上传结果 ${response.data}');
+//      String resposeStr = response.data;
+//
+//      var tempMap = jsonDecode(resposeStr);
+//      String listStr = tempMap['res'];
+//      String newStr = listStr.replaceAll("'", '\"');
+//      List tempArr = json.decode(newStr);
+//
+//      print(tempArr);
+//
+//      totalDataList = tempArr;
 
       /// 完成后更新UI
       selectDone = true;
       selectImage = file;
       setState(() {});
-    });
+//    });
   }
 
   /// 申请权限
@@ -325,110 +327,3 @@ class _CropImageRouteState extends State<CropImageRoute> {
   }
 }
 
-class TYPainter extends CustomPainter {
-  Rect selectRect = Rect.fromLTWH(0, 0, 0, 0);
-  List elementList;
-
-  ui.Image image;
-  List dataList = [];
-
-  Paint tyPaint = Paint();
-  final BuildContext context;
-  Color color = Colors.red;
-
-  TYPainter(this.context, this.image, this.dataList, this.selectRect,
-      this.elementList) {
-    this.tyPaint = Paint();
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    double scale = size.width / image.width * 1;
-    canvas.drawImageRect(
-        image,
-        Rect.fromLTWH(0, 0, image.width * 1.0, image.height * 1.0),
-        Rect.fromLTWH(0, 0, scale * image.width, scale * image.height),
-        tyPaint);
-
-    /// 画 选框
-    canvas.drawRect(
-        selectRect,
-        tyPaint
-          ..color = Colors.orange
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2);
-    elementList.clear();
-
-    /// 画右下角 编辑点
-    canvas.drawCircle(
-        Offset(selectRect.right, selectRect.bottom),
-        4,
-        tyPaint
-          ..style = PaintingStyle.fill
-          ..color = Colors.green);
-
-    /// 根据返回检测点 进行绘制
-    for (List item in dataList) {
-      String title = item[0];
-      double x = item[2];
-      double y = item[3];
-      double w = item[4];
-      double h = item[5];
-
-      /// 如果中心点在框选的范围内，则展示出来
-      if (!pointInRect(Offset(x * scale, y * scale), selectRect)) {
-        continue;
-      }
-
-      elementList.add(item);
-
-      canvas.drawRect(
-          Rect.fromCenter(
-              center: Offset(x * scale, y * scale),
-              width: w * scale,
-              height: h * scale),
-          tyPaint
-            ..style = PaintingStyle.stroke
-            ..color = Colors.red
-            ..strokeWidth = 2);
-
-      TextPainter textPainter = TextPainter(
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          text: TextSpan(
-            text: title,
-            style: TextStyle(color: Colors.red),
-          ),
-          textDirection: TextDirection.rtl);
-      textPainter
-        ..layout(maxWidth: 150, minWidth: 50)
-        ..paint(canvas, Offset(x * scale, (y - 20) * scale));
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return true;
-  }
-}
-
-/// 点是否在给定矩形范围内部
-bool pointInRect(Offset point, Rect rect) {
-  if (point.dx > rect.left &&
-      rect.right > point.dx &&
-      point.dy > rect.top &&
-      point.dy < rect.bottom) {
-    return true;
-  }
-  return false;
-}
-
-/// 两个点是否近
-bool hitPoint(Offset point, Offset hit) {
-  print(point);
-  print(hit);
-  if ((point.dx - hit.dx).abs() < 10 && (point.dy - hit.dy).abs() < 10) {
-    return true;
-  }
-  return false;
-}

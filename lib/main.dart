@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:ai_picture_detection_demo/common/config/constans.dart';
 import 'package:ai_picture_detection_demo/crop_image_route.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -39,27 +40,129 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Container(
         color: Color.fromARGB(255, 234, 234, 234),
         child: Center(
-          child: Column(
+          child: ListView(
             children: <Widget>[
               Text('请选择检测模型'),
               FlatButton(
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => TYSelectImagePage(
-                                'http://192.168.0.230:5000', 'AAU施工识别')));
-                  },
-                  child: Text('AAU施工识别')),
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              'http://192.168.0.230:5000', 'AAU施工识别')));
+                },
+                child: Text('AAU施工识别'),
+              ),
               FlatButton(
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => TYSelectImagePage(
-                                'http://192.168.0.230:8080', 'BBU施工点识别')));
-                  },
-                  child: Text('BBU施工识别')),
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              'http://192.168.0.230:8080', 'BBU施工点识别')));
+                },
+                child: Text('BBU施工识别'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              Config.URL_STR_ACCESS_CONTROL_TEST, '智能门禁系统检查')));
+                },
+                child: Text('智能门禁系统检查'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              Config.URL_STR_STATION_CLEAN_TEST, '站点清洁')));
+                },
+                child: Text('站点清洁'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              Config.URL_STR_POWER_SUPPLY_TEST, '直流配电单元安装方式检查')));
+                },
+                child: Text('直流配电单元安装方式检查'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              Config.URL_STR_GPS_LIGHTNING_PROTECT_TEST, 'GPS避雷器检查')));
+                },
+                child: Text('GPS避雷器检查'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              Config.URL_STR_POWER_TERMINAL_TEST, '设备取电端子检查')));
+                },
+                child: Text('设备取电端子检查'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              Config.URL_STR_POWER_LIGHTNING_PROTECT_TEST, '电源防雷模块接地检查')));
+                },
+                child: Text('电源防雷模块接地检查'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              Config.URL_STR_GPS_CONSTRACTION_TEST, 'GPS天线安装检查')));
+                },
+                child: Text('GPS天线安装检查'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              Config.URL_STR_AAU_POWER_CONSTRACTION_TEST, 'AAU侧光纤电源线安装检查')));
+                },
+                child: Text('AAU侧光纤电源线安装检查'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              Config.URL_STR_AAU_GROUNDING_TEST, 'AAU接地线连接可靠性检查')));
+                },
+                child: Text('AAU接地线连接可靠性检查'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TYSelectImagePage(
+                              Config.URL_STR_ANTENNAL_PANORAMA_TEST, '天馈全景图')));
+                },
+                child: Text('天馈全景图'),
+              ),
             ],
           ),
         ),
